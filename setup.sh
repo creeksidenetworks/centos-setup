@@ -26,7 +26,7 @@ default_packages=("yum-utils" "rsync" "util-linux" "curl" "firewalld" "bind-util
 "openldap-clients" "sssd" "realmd" "oddjob" "oddjob-mkhomedir" "adcli" \
 "samba-common" "samba-common-tools" "krb5-workstation" "openldap-clients" "iperf3" "rsnapshot" "zip" \
 "unzip" "ftp" "autofs" "zsh" "ksh" "tcsh" "ansible" "cabextract"  "fontconfig" \
-"nedit" "htop" "tar" "traceroute" "mtr" "pwgen" "ipa-admintools")
+"nedit" "htop" "tar" "traceroute" "mtr" "pwgen" "ipa-admintools" "subversion")
 
 CREEKSIDE_CFG_DIR="/etc/creekside"
 LOCAL_CFG_FILE=$CREEKSIDE_CFG_DIR/conf/localhost.cfg
@@ -437,10 +437,10 @@ function Install_Single_CentOS_Package() {
     if ! rpm -q --quiet $package_name; then
         if [ $# -eq 1 ]; then
             # install from repository
-            sudo yum install -y -q $1
+            sudo yum install -y -q $1 &> /dev/null
         else
             # install from remote source
-            sudo yum -y -q localinstall $package_source
+            sudo yum -y -q localinstall $package_source &> /dev/null
         fi
         if [ $? -eq 0 ]; then 
             printf "Just installed\n"
@@ -977,7 +977,7 @@ function Install_OfficeApps() {
 
         # main menu
         printf "\n o Installation menu ***\n"
-        printf   "   1. Google Chrome\n"
+        printf   "   1. Browsers\n"
         printf   "   2. Libreoffice\n"
         printf   "   3. Misc\n"
         printf   "   9. All above\n"
@@ -1015,22 +1015,29 @@ function Install_OfficeApps() {
 }
 
 function Install_Chrome() {
-    printf "   - Install Chrome browser \n" 
 
-    if [[ $OS_VERSION == "7" ]] ; then
-        printf "     > Download from ftp server\n"
-        WORK_DIR="/opt/chrome/pkg"
-        sudo mkdir -p $WORK_DIR
-        curl -# http://dist.control.lth.se/public/CentOS-7/x86_64/google.x86_64/google-chrome-stable-124.0.6367.118-1.x86_64.rpm -o ${WORK_DIR}/google-chrome-stable_current_x86_64.rpm
+    if ! rpm -q --quiet google-chrome-stable; then
+        printf "   - Install Chrome browser \n" 
+        if [[ $OS_VERSION == "7" ]] ; then
+            printf "     > Download from ftp server\n"
+            WORK_DIR="/opt/chrome/pkg"
+            sudo mkdir -p $WORK_DIR
+            curl -# http://dist.control.lth.se/public/CentOS-7/x86_64/google.x86_64/google-chrome-stable-124.0.6367.118-1.x86_64.rpm -o ${WORK_DIR}/google-chrome-stable_current_x86_64.rpm
 
-        sudo yum -y install liberation-fonts libvulkan*
+            sudo yum -y install liberation-fonts libvulkan*
 
-        printf "     > Install Chrome\n"
-        sudo yum install liberation-fonts -y
-        sudo rpm -i ${WORK_DIR}/google-chrome-stable_current_x86_64.rpm
+            printf "     > Install Chrome\n"
+            sudo yum install liberation-fonts -y
+            sudo rpm -i ${WORK_DIR}/google-chrome-stable_current_x86_64.rpm
+            sudo mv google-chrome.repo google-chrome.repo.bak
+        else
+            sudo dnf install https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm -y
+        fi
     else
-        sudo dnf install https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm -y
+        printf "%-60s : Already installed\n" "   - Install \"Google Chrome\""
     fi
+
+    Install_Single_CentOS_Package "firefox"
 
 }
 
@@ -1065,6 +1072,7 @@ function Install_LibreOffice_7() {
         printf "     > Download from ftp server\n"
         RPM_LibreOffice_7_6_7="LibreOffice_7.6.7_Linux_x86-64_rpm.tar.gz"
         RPM_PATH="/opt/libreoffice/rpm"
+        sudo mkdir -p $RPM_PATH
         RPM_FILE="${RPM_PATH}/${RPM_LibreOffice_7_6_7}"
         ftp_get "apps/centos7/libreoffice/${RPM_LibreOffice_7_6_7}" "${RPM_FILE}"
 
@@ -1165,17 +1173,7 @@ mate_packges=("adwaita-gtk2-theme" "lightdm-settings" "lightdm" "gnome-terminal"
              "network-manager-applet" "nm-connection-editor" "p7zip" "p7zip-plugins" "pluma" "seahorse" "seahorse-caja" "xdg-user-dirs-gtk"
              )
 
-mate8_packges=("adwaita-gtk2-theme" "lightdm-gtk-greeter" "gnome-terminal" \
-            "alsa-plugins-pulseaudio" "atril" "atril-caja" "atril-thumbnailer" "caja" "caja-actions" "caja-image-converter" "caja-open-terminal" \
-             "caja-sendto" "caja-wallpaper" "caja-xattr-tags" "dconf-editor" "engrampa" "eom" "firewall-config" "gnome-disk-utility" \
-             "gnome-epub-thumbnailer" "gstreamer1-plugins-ugly-free" "gtk2-engines" "gucharmap" "gvfs-fuse" "gvfs-gphoto2" "gvfs-mtp" \
-             "gvfs-smb" "initial-setup-gui" "libmatekbd" "libmatemixer" "libmateweather" "libsecret" "lm_sensors" "marco" "mate-applets" \
-             "mate-backgrounds" "mate-calc" "mate-control-center" "mate-desktop" "mate-dictionary" "mate-disk-usage-analyzer" "mate-icon-theme" \
-             "mate-media" "mate-menus" "mate-menus-preferences-category-menu" "mate-notification-daemon" "mate-panel" "mate-polkit" \
-             "mate-power-manager" "mate-screensaver" "mate-screenshot" "mate-search-tool" "mate-session-manager" "mate-settings-daemon" \
-             "mate-system-log" "mate-system-monitor" "mate-terminal" "mate-themes" "mate-user-admin" "mate-user-guide" "mozo" \
-             "network-manager-applet" "nm-connection-editor" "p7zip" "p7zip-plugins" "pluma" "seahorse" "seahorse-caja" "xdg-user-dirs-gtk"
-             )
+
 
 mate_pkgs_ol8="NetworkManager-adsl NetworkManager-bluetooth NetworkManager-libreswan-gnome NetworkManager-openvpn-gnome 
     NetworkManager-ovs NetworkManager-ppp NetworkManager-team NetworkManager-wifi NetworkManager-wwan abrt-desktop 
@@ -1187,7 +1185,7 @@ mate_pkgs_ol8="NetworkManager-adsl NetworkManager-bluetooth NetworkManager-libre
     mate-menus mate-menus-preferences-category-menu mate-notification-daemon mate-panel mate-polkit mate-power-manager mate-screensaver 
     mate-screenshot mate-search-tool mate-session-manager mate-settings-daemon mate-system-log mate-system-monitor mate-terminal mate-themes 
     mate-user-admin mate-user-guide mozo network-manager-applet nm-connection-editor p7zip p7zip-plugins pluma seahorse seahorse-caja 
-    xdg-user-dirs-gtk brisk-menu slick-greeter-mate lightdm-setting"             
+    xdg-user-dirs-gtk brisk-menu slick-greeter-mate gnome-terminal lightdm-settings rxvt-unicode"             
 
 #"NetworkManager-adsl" "NetworkManager-bluetooth" "NetworkManager-libreswan-gnome" "NetworkManager-openvpn-gnome" \
 #            "NetworkManager-ovs" "NetworkManager-ppp" "NetworkManager-team" "NetworkManager-wifi" "NetworkManager-wwan" 
@@ -1195,7 +1193,7 @@ mate_pkgs_ol8="NetworkManager-adsl NetworkManager-bluetooth NetworkManager-libre
 function Install_MateDesktop() {
     if type -p mate-session; then
         printf "\n mate desktop already installed\n\n"
-        return 0
+        #return 0
     fi
 
     printf "\n  o Install mate desktop\n"
@@ -1204,6 +1202,7 @@ function Install_MateDesktop() {
         "7")
             sudo yum group install "X Window system" -y
             sudo yum group install "MATE Desktop" -y
+            sudo yum install rxvt-unicode -y
             ;;
         "8")
             for pacakge in $mate_pkgs_ol8; do
@@ -1228,6 +1227,18 @@ function Install_MateDesktop() {
         sudo ln -fs '/usr/lib/systemd/system/graphical.target' '/etc/systemd/system/default.target'
     fi
 
+    printf "  o Disable screen saver \n"
+
+    # Disable the screensaver on MATE desktop
+    dconf write /org/mate/screensaver/idle-activation-enabled false
+    dconf write /org/mate/screensaver/lock-enabled false
+    dconf write /org/mate/screensaver/idle-delay 0
+    dconf write /desktop/mate/lockdown/disable_lockscreen_and_logout true
+    dconf write /desktop/gnome/lockdown/disable_lockscreen_and_logout true
+    gsettings set org.gnome.desktop.session idle-delay 0
+    gsettings set org.gnome.desktop.screensaver lock-enabled false
+    gsettings set org.gnome.desktop.screensaver idle-activation-enabled false
+
     printf "  o Disable shutdown menu \n"
 
     sudo mkdir -p /etc/polkit-1/rules.d
@@ -1245,6 +1256,42 @@ function Install_MateDesktop() {
     }
 });" | sudo tee /etc/polkit-1/rules.d/55-inhibit-shutdown.rules &> /dev/null
 
+    printf "\n  o Disabel screen lock and saver as default \n"
+
+    # disable screen lock and saver
+    sudo mkdir -p /etc/dconf/db/local.d
+    echo "[org/mate/screensaver]
+idle-activation-enabled=false
+lock-enabled=false
+lock-delay=0
+" | sudo tee /etc/dconf/db/local.d/00-screensaver &> /dev/null
+
+    # Update the system database
+    sudo dconf update
+
+    # Disable X11 timeout
+    echo "Section "ServerFlags"
+    Option "BlankTime" "0"
+    Option "StandbyTime" "0"
+    Option "SuspendTime" "0"
+    Option "OffTime" "0"
+EndSection
+" | sudo tee /etc/X11/xorg.conf.d/10-monitor.conf  &> /dev/null
+
+    sudo systemctl restart lightdm 
+
+    # Disable DPMS
+    echo "[Desktop Entry]
+Type=Application
+Exec=xset -dpms s off
+Hidden=false
+NoDisplay=false
+X-MATE-Autostart-enabled=true
+Name[en_US]=Disable DPMS
+Name=Disable DPMS
+Comment[en_US]=Disable DPMS
+Comment=Disable DPMS
+" | sudo tee /etc/xdg/autostart/disable-dpms.desktop  &> /dev/null
 
     printf "\n  o Enable mate-session as default \n"
     printf "    - Update default /etc/skel \n"
@@ -1419,9 +1466,10 @@ function OS_Init() {
     printf "\n o Install some essential packages\n"
 
     if [[ $OS_VERSION == "7" ]] && [[ ! -f /etc/yum.repos.d/CentOS-Base.repo.bak ]]; then
+        printf "\n o Update CentOS 7 Base repo\n"
         # update centos repo 
         sudo sed -i 's/^mirrorlist=/#mirrorlist=/' /etc/yum.repos.d/CentOS-Base.repo
-        sudo sed -i 's/^#baseurl=http:\\/\\/mirror.centos.org/baseurl=http:\\/\\/vault.centos.org/' /etc/yum.repos.d/CentOS-Base.repo
+        sudo sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-Base.repo
     fi
 
     case "${OS_TYPE} ${OS_VERSION}"  in
@@ -1574,6 +1622,26 @@ function OS_Init() {
         printf "\n  o Disable SELINUX\n"
         sudo sed -i  "s%SELINUX=enforcing%SELINUX=disabled%g" /etc/selinux/config 
         sudo setenforce 0
+    fi
+
+    printf "\n  o Enable Nano editor cursor position dispaly \n"
+    # Path to the nano configuration file
+    NANORC_FILE="/etc/nanorc"
+
+    # Configuration line to add
+    CONFIG_LINE="set constantshow"
+
+    # Check if the line exists in the file
+    if sudo grep -q "^$CONFIG_LINE" "$NANORC_FILE"; then
+        echo "    - Configuration already enabled in $NANORC_FILE."
+    elif sudo grep -q "^# *$CONFIG_LINE" "$NANORC_FILE"; then
+        # Uncomment the line if it exists but is commented out
+        sudo sed -i "s/^# *$CONFIG_LINE/$CONFIG_LINE/" "$NANORC_FILE"
+        echo "    - Uncommented the configuration in $NANORC_FILE."
+    else
+        # Append the line if it doesn't exist
+        echo "$CONFIG_LINE" | sudo tee -a "$NANORC_FILE" &> /dev/null
+        echo "    - Added the configuration to $NANORC_FILE."
     fi
 
     ifname_change=$(grep "net.ifnames=0" /etc/default/grub)
